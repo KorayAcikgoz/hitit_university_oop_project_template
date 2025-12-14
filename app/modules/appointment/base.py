@@ -1,4 +1,5 @@
-# app/modules/module_2/base.py
+# app/modules/appointment/base.py
+
 from abc import ABC, abstractmethod
 from datetime import datetime
 

@@ -1,4 +1,5 @@
-# app/modules/module_2/implementations.py
+# app/modules/appointment/implementations.py
+
 from .base import AppointmentBase
 
 class RoutineAppointment(AppointmentBase):
