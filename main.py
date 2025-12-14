@@ -2,7 +2,7 @@ from app.modules.Patient.implementations import (
     Base1SubClass1, Base1SubClass2
 )
 
-from app.modules.module_2.implementations import (
+from app.modules.appointment.implementations import (
     Base2SubClass1, Base2SubClass2
 )
 
