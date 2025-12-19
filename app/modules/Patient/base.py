@@ -11,7 +11,7 @@ class PatientBase(ABC):
     """
 
     # class attributes
-    _hospital_name = "Hitit University Hospital"
+    _hospital_name = "Ada University"
     _valid_statuses = ["aktif", "acil", "stabil", "taburcu", "iptal"]
 
     def __init__(
