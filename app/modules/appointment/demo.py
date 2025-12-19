@@ -1,5 +1,6 @@
 # app/modules/appointment/demo.py
 
+from datetime import datetime
 from .repository import AppointmentRepository
 from .onlineappointment import OnlineAppointment
 
@@ -13,12 +14,15 @@ def run_demo():
         appointment_id=1,
         patient_id=1,
         doctor_name="Dr. Ali",
-        date_time="2025-12-21 14:00",
-        status="aktif",
-        platform="Zoom"
+        date_time=datetime(2025, 12, 21, 14, 0),
+        meeting_link="https://zoom.us/ada-hospital",
+        platform="zoom",
+        estimated_duration=30,
+        recording_enabled=True
     )
 
     repo.add(appointment)
 
     for a in repo.list_all():
-        print(a.describe())
+        print(a.get_details())
+        print(f"Ücret: {a.calculate_fee()} TL")
