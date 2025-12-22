@@ -2,7 +2,7 @@
 
 from .base import PatientBase
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 
 class Outpatient(PatientBase):
@@ -20,6 +20,8 @@ class Outpatient(PatientBase):
         status: str = "aktif"
     ):
         super().__init__(patient_id, name, age, gender, status)
+
+        self._appointment_history: List[str] = []
         self.appointment_date = appointment_date
 
     # property
@@ -49,22 +51,31 @@ class Outpatient(PatientBase):
             f"İsim: {self.name}, "
             f"Yaş: {self.age}, "
             f"Cinsiyet: {self.gender}, "
-            f"Randevu Tarihi: {self.appointment_date}, "
+            f"Aktif Randevu: {self.appointment_date}, "
             f"Durum: {self.status}"
         )
 
     # base davranışı override
     def update_status(self, new_status: str):
         """
-        Ayaktan hasta iptal edilirse randevu otomatik silinir
+        Ayaktan hasta iptal veya tamamlandı olursa
+        aktif randevu geçmişe taşınır
         """
-        if new_status == "iptal":
+        if new_status in ("iptal", "tamamlandı") and self._appointment_date:
+            self._appointment_history.append(self._appointment_date)
             self._appointment_date = None
+
         self._status = new_status
 
     # yardımcı davranış
     def has_appointment(self) -> bool:
         return self._appointment_date is not None
+
+    def get_appointment_history(self) -> List[str]:
+        """
+        Hastanın geçmiş randevularını döndürür
+        """
+        return list(self._appointment_history)
 
     # static method
     @staticmethod

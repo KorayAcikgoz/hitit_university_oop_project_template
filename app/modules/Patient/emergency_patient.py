@@ -2,12 +2,13 @@
 
 from .base import PatientBase
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 
 class EmergencyPatient(PatientBase):
     """
     Acil Hasta Sınıfı
+    Semptomlara göre Yeşil / Sarı / Kırmızı alan belirler
     """
 
     def __init__(
@@ -27,8 +28,10 @@ class EmergencyPatient(PatientBase):
 
         self._emergency_level = emergency_level
         self._arrival_time = arrival_time or datetime.now()
+        self._symptoms: List[str] = []
 
-    # property
+ 
+
     @property
     def emergency_level(self) -> int:
         return self._emergency_level
@@ -37,18 +40,16 @@ class EmergencyPatient(PatientBase):
     def arrival_time(self) -> datetime:
         return self._arrival_time
 
-    # abstract method override
+    @property
+    def symptoms(self) -> List[str]:
+        return list(self._symptoms)
+
+
     def get_priority(self) -> int:
-        """
-        Acil hastalarda öncelik seviyesi:
-        Seviye 1 → 100
-        Seviye 2 → 80
-        Seviye 3 → 60
-        """
         return {
-            1: 100,
-            2: 80,
-            3: 60
+            1: 100, 
+            2: 80,   
+            3: 60    
         }[self._emergency_level]
 
     def describe(self) -> str:
@@ -58,34 +59,51 @@ class EmergencyPatient(PatientBase):
             f"Ad: {self.name}, "
             f"Yaş: {self.age}, "
             f"Cinsiyet: {self.gender}, "
-            f"Acil Seviye: {self._emergency_level}, "
+            f"Alan: {self.determine_triage_area()}, "
+            f"Semptomlar: {', '.join(self._symptoms) if self._symptoms else 'Yok'}, "
             f"Geliş Zamanı: {self._arrival_time.strftime('%Y-%m-%d %H:%M')}, "
             f"Durum: {self.status}"
         )
+        
+    
+    def add_symptoms(self, symptoms: List[str]):
+        self._symptoms.extend(symptoms)
 
-    # base davranışı override
+    def determine_triage_area(self) -> str:
+        """
+        Semptomlara göre triyaj alanı belirler
+        """
+
+        if (
+            "bilinç kaybı" in self._symptoms or
+            "nefes darlığı" in self._symptoms or
+            "şiddetli göğüs ağrısı" in self._symptoms
+        ):
+            return "Kırmızı Alan"
+
+        elif (
+            "yüksek ateş" in self._symptoms or
+            "şiddetli baş ağrısı" in self._symptoms or
+            "şiddetli karın ağrısı" in self._symptoms
+        ):
+            return "Sarı Alan"
+
+        return "Yeşil Alan"
+
+
     def update_status(self, new_status: str):
-        """
-        Acil hastalar için durum geçişleri kontrol altına alınır
-        """
         valid_statuses = ["acil", "stabil", "taburcu"]
 
         if new_status not in valid_statuses:
             raise ValueError("Geçersiz acil hasta durumu")
 
-        # Stabil olunca acil seviyesi otomatik düşürülür
-        if new_status == "stabil" and self._emergency_level > 2:
-            self._emergency_level = 2
-
         self._status = new_status
 
-    # emergency-specific behavior
+
     def stabilize(self):
-        """Hasta stabilize edildiğinde çağrılır"""
         self.update_status("stabil")
 
     def escalate(self):
-        """Hastanın durumu kötüleşirse acil seviyesi yükseltilir"""
         if self._emergency_level > 1:
             self._emergency_level -= 1
             self._status = "acil"
