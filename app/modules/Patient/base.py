@@ -16,7 +16,7 @@ class PatientBase(ABC):
 
     def __init__(
         self,
-        patient_id: int,
+        patient_id: int | None,
         name: str,
         age: int,
         gender: str,
@@ -62,6 +62,12 @@ class PatientBase(ABC):
     def gender(self) -> str:
         return self._gender
 
+    @gender.setter
+    def gender(self, value: str):
+        if value.lower() not in ("erkek", "kadın", "diger"):
+            raise ValueError("Geçersiz cinsiyet")
+        self._gender = value.lower()
+    
     @property
     def status(self) -> str:
         return self._status
