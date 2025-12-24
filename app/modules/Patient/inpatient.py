@@ -1,23 +1,18 @@
 # app/modules/patient/inpatient.py
-from .base import PatientBase
 
+from .base import PatientBase
+from typing import Optional
+from .emergency_patient import EmergencyPatient
 
 class Inpatient(PatientBase):
     """
     Yatan hasta sınıfı
     """
-
-    _max_capacity = 10
+    
+    _max_capacity = 16
     _current_inpatients = 0
 
-    def __init__(
-        self,
-        patient_id: int,
-        name: str,
-        age: int,
-        gender: str,
-        room_number: int,
-        status: str = "aktif"
+    def __init__(self, patient_id: Optional[int], name: str, age: int, gender: str, room_number: Optional[int] = None, status: str = "aktif"
     ):
         # kapasite kontrolü
         if Inpatient._current_inpatients >= Inpatient._max_capacity:
@@ -26,18 +21,18 @@ class Inpatient(PatientBase):
         super().__init__(patient_id, name, age, gender, status)
 
         self.room_number = room_number
-        self._is_discharged = False  # aynı hasta iki kere düşürülmesin
+        self._is_discharged = False 
 
         Inpatient._current_inpatients += 1
 
-    # property
+    # property metotları
     @property
     def room_number(self):
         return self._room_number
 
     @room_number.setter
     def room_number(self, value):
-        if value is None or value <= 0:
+        if value is not None and value <= 0:
             raise ValueError("Oda numarası pozitif bir sayı olmalıdır.")
         self._room_number = value
 
@@ -46,14 +41,11 @@ class Inpatient(PatientBase):
         """Inpatient için orta öncelik"""
         return 2
 
-    def describe(self) -> str:
+    def detailed_info(self) -> str:
+        base_info = super().detailed_info()
         return (
-            f"Inpatient Hasta → "
-            f"İsim: {self.name}, "
-            f"Yaş: {self.age}, "
-            f"Cinsiyet: {self.gender}, "
-            f"Oda: {self.room_number}, "
-            f"Durum: {self.status}"
+            f"{base_info}\n"
+            f"Oda No        : {self.room_number}"
         )
 
     # class methods
@@ -68,16 +60,32 @@ class Inpatient(PatientBase):
 
     # base davranışı override
     def update_status(self, new_status: str):
-        """
-        Hasta taburcu edilirse kapasite otomatik güncellenir
-        """
         if new_status == "taburcu" and not self._is_discharged:
             Inpatient._decrease_capacity()
             self._is_discharged = True
+            self.clear_room()
 
-        self._status = new_status
+        super().update_status(new_status)
+        
+    def clear_room(self):
+        """ Hasta taburcu edildiğinde oda bilgisini temizler """
+        self._room_number = None
+        
+    @classmethod
+    def from_emergency(
+        cls,
+        emergency_patient: "EmergencyPatient",
+        room_number: int
+    ):
+        """ Emergency hastayı Inpatient'a dönüştürür """
+        inpatient = cls(
+            patient_id=emergency_patient.patient_id,
+            name=emergency_patient.name,
+            age=emergency_patient.age,
+            gender=emergency_patient.gender,
+            room_number=room_number,
+            status="aktif"
+        )
 
-    # static method
-    @staticmethod
-    def patient_type() -> str:
-        return "Inpatient"
+        return inpatient
+    

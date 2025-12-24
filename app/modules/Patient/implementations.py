@@ -10,9 +10,8 @@ class PrintablePatient(PatientBase):
     def get_priority(self) -> int:
         return 99
 
-    def describe(self) -> str:
+    def detailed_info(self) -> str:
         return (
-            f"[TEST PATIENT] "
             f"ID: {self.patient_id}, "
             f"Ad: {self.name}, "
             f"Yaş: {self.age}, "
