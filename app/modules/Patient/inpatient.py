@@ -38,7 +38,9 @@ class Inpatient(PatientBase):
 
     # abstract method override
     def get_priority(self) -> int:
-        """Inpatient için orta öncelik"""
+        """
+        Inpatient için orta öncelik
+        """
         return 2
 
     def detailed_info(self) -> str:
@@ -68,7 +70,9 @@ class Inpatient(PatientBase):
         super().update_status(new_status)
         
     def clear_room(self):
-        """ Hasta taburcu edildiğinde oda bilgisini temizler """
+        """ 
+        Hasta taburcu edildiğinde oda bilgisini temizler 
+        """
         self._room_number = None
         
     @classmethod
@@ -77,7 +81,9 @@ class Inpatient(PatientBase):
         emergency_patient: "EmergencyPatient",
         room_number: int
     ):
-        """ Emergency hastayı Inpatient'a dönüştürür """
+        """ 
+        Emergency hastayı Inpatient'a dönüştürür 
+        """
         inpatient = cls(
             patient_id=emergency_patient.patient_id,
             name=emergency_patient.name,

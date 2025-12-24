@@ -14,8 +14,10 @@ class PatientService:
 
    
     def register_patient(self, patient: PatientBase):
-        """ Yeni hasta kaydı oluşturur
-        Inpatient ise oda otomatik atanır """
+        """ 
+        Yeni hasta kaydı oluşturur
+        Inpatient ise oda otomatik atanır 
+        """
         if isinstance(patient, Inpatient) and patient.room_number is None:
             room = self._repository.get_available_room()
             patient.room_number = room
@@ -25,7 +27,9 @@ class PatientService:
 
 
     def discharge_patient(self, patient_id: int):
-        """ Hastayı taburcu eder """
+        """ 
+        Hastayı taburcu eder 
+        """
         patient = self._repository.get_by_id(patient_id)
         if not patient:
             raise ValueError("Hasta bulunamadı")
@@ -34,7 +38,9 @@ class PatientService:
 
    
     def update_patient_status(self, patient_id: int, new_status: str):
-        """ Belirtilen ID’ye sahip hastanın durumunu günceller. """
+        """ 
+        Belirtilen ID’ye sahip hastanın durumunu günceller. 
+        """
         patient = self._repository.get_by_id(patient_id)
         if not patient:
             raise ValueError("Hasta bulunamadı")
@@ -50,22 +56,30 @@ class PatientService:
         return patient
 
     def list_patients(self):
-        """ Sistemde kayıtlı tüm hastaları listeler. """
+        """ 
+        Sistemde kayıtlı tüm hastaları listeler. 
+        """
         return self._repository.list_all()
 
 
     def list_patients_by_type(self, patient_type: str):
-        """ Hasta tipine göre filtreleme yapar.
-        (Inpatient, Outpatient, EmergencyPatient) """
+        """ 
+        Hasta tipine göre filtreleme yapar.
+        (Inpatient, Outpatient, EmergencyPatient)
+        """
         return self._repository.filter_by_type(patient_type)
 
     def total_patient_count(self) -> int:
-        """ Sistemdeki toplam hasta sayısını döndürür. """
+        """ 
+        Sistemdeki toplam hasta sayısını döndürür. 
+        """
         return self._repository.count()
 
     
     def list_active_patients(self):
-        """ Taburcu edilmemiş hastaları listeler. """
+        """ 
+        Taburcu edilmemiş hastaları listeler. 
+        """
         return [
             p for p in self._repository.list_all()
             if p.status != "taburcu"
@@ -73,7 +87,9 @@ class PatientService:
 
 
     def list_emergency_patients(self):
-        """ Taburcu edilmemiş acil hastaları listeler. """
+        """ 
+        Taburcu edilmemiş acil hastaları listeler. 
+        """
         return [
             p for p in self._repository.list_all()
             if isinstance(p, EmergencyPatient) and p.status != "taburcu"
@@ -81,7 +97,9 @@ class PatientService:
 
 
     def admit_emergency_patient(self, patient_id: int):
-        """  Emergency hastayı yatışa alır (Inpatient'a dönüştürür)  """
+        """ 
+        Emergency hastayı yatışa alır (Inpatient'a dönüştürür)  
+        """
         patient = self._repository.get_by_id(patient_id)
 
         if not patient or not isinstance(patient, EmergencyPatient):
@@ -94,5 +112,7 @@ class PatientService:
         return inpatient
     
     def list_room_occupancy(self):
-        """ Odalarda hangi hastalar var bilgisini döndürür """
+        """ 
+        Odalarda hangi hastalar var bilgisini döndürür 
+        """
         return self._repository.list_rooms()

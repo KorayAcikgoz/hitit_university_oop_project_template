@@ -26,8 +26,10 @@ class PatientRepository:
         return pid
 
     def add(self, patient: PatientBase):
-        """ Yeni hasta ekler.
-        ID yoksa otomatik ID atar. """
+        """ 
+        Yeni hasta ekler.
+        ID yoksa otomatik ID atar. 
+        """
         if patient.patient_id is None:
             patient._patient_id = self.generate_id()
 
@@ -39,46 +41,62 @@ class PatientRepository:
         self._patients.append(patient)
 
     def remove(self, patient_id: int):
-        """ ID'ye göre hasta siler. """
+        """ 
+        ID'ye göre hasta siler. 
+        """
         patient = self.get_by_id(patient_id)
         if patient is None:
             raise ValueError(f"Silinecek hasta bulunamadı: {patient_id}")
         self._patients.remove(patient)
 
     def get_by_id(self, patient_id: int) -> Optional[PatientBase]:
-        """ ID'ye göre hasta döndürür. """
+        """ 
+        ID'ye göre hasta döndürür. 
+        """
         for patient in self._patients:
             if patient.patient_id == patient_id:
                 return patient
         return None
 
     def list_all(self) -> List[PatientBase]:
-        """ Tüm hastaları listeler. """
+        """ 
+        Tüm hastaları listeler. 
+        """
         return list(self._patients)
 
     def filter_by_status(self, status: str) -> List[PatientBase]:
-        """ Duruma göre hasta filtreler. """
+        """ 
+        Duruma göre hasta filtreler. 
+        """
         return [p for p in self._patients if p.status == status]
 
     def filter_by_type(self, patient_type: str) -> List[PatientBase]:
-        """ Hasta tipine göre filtreleme 
-        (Inpatient, Outpatient, EmergencyPatient) """
+        """ 
+        Hasta tipine göre filtreleme 
+        (Inpatient, Outpatient, EmergencyPatient) 
+        """
         return [
             p for p in self._patients
             if p.__class__.__name__.lower() == patient_type.lower()
         ]
 
     def count(self) -> int:
-        """ Toplam hasta sayısını döndürür. """
+        """ 
+        Toplam hasta sayısını döndürür. 
+        """
         return len(self._patients)
     
     def release_room_if_inpatient(self, patient: PatientBase):
-        """ Taburcu olan hasta Inpatient ise odasını boşaltır """
+        """ 
+        Taburcu olan hasta Inpatient ise odasını boşaltır 
+        """
         if isinstance(patient, Inpatient):
             patient.clear_room()
     
     def replace_patient(self, old_patient, new_patient):
-        """ Bir hasta kaydını başka bir hasta nesnesiyle değiştirir  """
+        """ 
+        Bir hasta kaydını başka bir hasta nesnesiyle değiştirir  
+        """
         if old_patient not in self._patients:
             raise ValueError("Değiştirilecek hasta bulunamadı")
 
@@ -98,7 +116,9 @@ class PatientRepository:
         raise ValueError("Boş oda bulunamadı")
     
     def list_rooms(self):
-        """ Oda numaralarına göre yatan hastaları döndürür """
+        """ 
+        Oda numaralarına göre yatan hastaları döndürür 
+        """
         rooms = {}
 
         for patient in self._patients:
@@ -121,5 +141,7 @@ class PatientRepository:
 
 
     def list_active_patients(self):
-        """ Taburcu edilmemiş (aktif) hastaları döndürür """
+        """ 
+        Taburcu edilmemiş (aktif) hastaları döndürür 
+        """
         return [p for p in self._patients if p.is_active()]

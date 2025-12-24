@@ -55,7 +55,9 @@ class EmergencyPatient(PatientBase):
         return list(self._symptoms)
 
     def get_priority(self) -> int:
-        """Acil seviyeye göre hastanın öncelik puanını döndürür"""
+        """
+        Acil seviyeye göre hastanın öncelik puanını döndürür
+        """
         return {
             1: 100, 
             2: 80,   
@@ -73,11 +75,15 @@ class EmergencyPatient(PatientBase):
         
     
     def add_symptoms(self, symptoms: List[str]):
-        """Hastaya bir veya birden fazla semptom ekler"""
+        """
+        Hastaya bir veya birden fazla semptom ekler
+        """
         self._symptoms.extend(symptoms)
 
     def determine_triage_area(self) -> str:
-        """Semptomlara göre triyaj alanını ve acil seviyeyi belirler"""
+        """
+        Semptomlara göre triyaj alanını ve acil seviyeyi belirler
+        """
         text = " ".join(s.lower() for s in self._symptoms)
 
         if any(k in text for k in ["göğüs ağrısı", "nefes darlığı", "bilinç kaybı", "şiddetli kanama"]):
@@ -93,16 +99,22 @@ class EmergencyPatient(PatientBase):
         return self._triage_area
 
     def update_status(self, new_status: str):
-        """Acil hastanın durumunu günceller"""
+        """
+        Acil hastanın durumunu günceller
+        """
         super().update_status(new_status)
 
 
     def stabilize(self):
-        """Hastayı stabil duruma geçirir"""
+        """
+        Hastayı stabil duruma geçirir
+        """
         self.update_status("stabil")
 
     def escalate(self):
-        """Hastanın acil seviyesini yükseltir"""
+        """
+        Hastanın acil seviyesini yükseltir
+        """
         if self._emergency_level > 1:
             self._emergency_level -= 1
             self.update_status("acil")
