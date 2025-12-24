@@ -2,24 +2,18 @@
 
 from .base import PatientBase
 from datetime import datetime
-from typing import Optional
-
+from typing import Optional, List
 
 class Outpatient(PatientBase):
     """
     Ayaktan hasta sınıfı
     """
 
-    def __init__(
-        self,
-        patient_id: int,
-        name: str,
-        age: int,
-        gender: str,
-        appointment_date: Optional[str] = None,
-        status: str = "aktif"
+    def __init__(self, patient_id: Optional[int],  name: str, age: int, gender: str, appointment_date: Optional[str] = None, status: str = "aktif"
     ):
         super().__init__(patient_id, name, age, gender, status)
+
+        self._appointment_history: List[str] = []
         self.appointment_date = appointment_date
 
     # property
@@ -43,30 +37,25 @@ class Outpatient(PatientBase):
         """Outpatient için düşük öncelik"""
         return 3
 
-    def describe(self) -> str:
+    def detailed_info(self) -> str:
+        base_info = super().detailed_info()
         return (
-            f"Outpatient Hasta → "
-            f"İsim: {self.name}, "
-            f"Yaş: {self.age}, "
-            f"Cinsiyet: {self.gender}, "
-            f"Randevu Tarihi: {self.appointment_date}, "
-            f"Durum: {self.status}"
+            f"{base_info}\n"
+            f"Randevu Tarihi: {self.appointment_date or '-'}"
         )
 
     # base davranışı override
     def update_status(self, new_status: str):
-        """
-        Ayaktan hasta iptal edilirse randevu otomatik silinir
-        """
-        if new_status == "iptal":
+        if new_status in ("iptal", "tamamlandı") and self._appointment_date:
+            self._appointment_history.append(self._appointment_date)
             self._appointment_date = None
-        self._status = new_status
+
+        super().update_status(new_status)
 
     # yardımcı davranış
     def has_appointment(self) -> bool:
         return self._appointment_date is not None
 
-    # static method
-    @staticmethod
-    def patient_type() -> str:
-        return "Outpatient"
+    def get_appointment_history(self) -> List[str]:
+        """ Hastanın geçmiş randevularını döndürür """
+        return list(self._appointment_history)

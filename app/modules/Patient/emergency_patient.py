@@ -2,23 +2,24 @@
 
 from .base import PatientBase
 from datetime import datetime
-from typing import Optional
-
+from typing import Optional, List
 
 class EmergencyPatient(PatientBase):
     """
     Acil Hasta Sınıfı
+    Semptomlara göre Yeşil / Sarı / Kırmızı alan belirler
     """
 
     def __init__(
         self,
-        patient_id: int,
+        patient_id: Optional[int],
         name: str,
         age: int,
         gender: str,
         emergency_level: int,
         arrival_time: Optional[datetime] = None,
         status: str = "acil"
+        
     ):
         super().__init__(patient_id, name, age, gender, status)
 
@@ -27,68 +28,81 @@ class EmergencyPatient(PatientBase):
 
         self._emergency_level = emergency_level
         self._arrival_time = arrival_time or datetime.now()
+        self._symptoms: List[str] = []
+        self._triage_area: Optional[str] = None
 
-    # property
+    # property metotları
+    @property
+    def triage_area(self) -> Optional[str]:
+        return self._triage_area
+    
     @property
     def emergency_level(self) -> int:
         return self._emergency_level
+
+    @emergency_level.setter   
+    def emergency_level(self, value: int):
+        if value not in (1, 2, 3):
+            raise ValueError("Acil seviye 1-3 arasında olmalıdır")
+        self._emergency_level = value
 
     @property
     def arrival_time(self) -> datetime:
         return self._arrival_time
 
-    # abstract method override
+    @property
+    def symptoms(self) -> List[str]:
+        return list(self._symptoms)
+
     def get_priority(self) -> int:
-        """
-        Acil hastalarda öncelik seviyesi:
-        Seviye 1 → 100
-        Seviye 2 → 80
-        Seviye 3 → 60
-        """
+        """Acil seviyeye göre hastanın öncelik puanını döndürür"""
         return {
-            1: 100,
-            2: 80,
-            3: 60
+            1: 100, 
+            2: 80,   
+            3: 60    
         }[self._emergency_level]
 
-    def describe(self) -> str:
+    def detailed_info(self) -> str:
+        base_info = super().detailed_info()
         return (
-            f"[ACİL HASTA] "
-            f"ID: {self.patient_id}, "
-            f"Ad: {self.name}, "
-            f"Yaş: {self.age}, "
-            f"Cinsiyet: {self.gender}, "
-            f"Acil Seviye: {self._emergency_level}, "
-            f"Geliş Zamanı: {self._arrival_time.strftime('%Y-%m-%d %H:%M')}, "
-            f"Durum: {self.status}"
+            f"{base_info}\n"
+            f"Acil Seviye   : {self.emergency_level}\n"
+            f"Triyaj Alanı  : {self.triage_area or self.determine_triage_area()}\n"
+            f"Geliş Zamanı : {self.arrival_time.strftime('%Y-%m-%d %H:%M')}"
         )
+        
+    
+    def add_symptoms(self, symptoms: List[str]):
+        """Hastaya bir veya birden fazla semptom ekler"""
+        self._symptoms.extend(symptoms)
 
-    # base davranışı override
-    def update_status(self, new_status: str):
-        """
-        Acil hastalar için durum geçişleri kontrol altına alınır
-        """
-        valid_statuses = ["acil", "stabil", "taburcu"]
+    def determine_triage_area(self) -> str:
+        """Semptomlara göre triyaj alanını ve acil seviyeyi belirler"""
+        text = " ".join(s.lower() for s in self._symptoms)
 
-        if new_status not in valid_statuses:
-            raise ValueError("Geçersiz acil hasta durumu")
-
-        # Stabil olunca acil seviyesi otomatik düşürülür
-        if new_status == "stabil" and self._emergency_level > 2:
+        if any(k in text for k in ["göğüs ağrısı", "nefes darlığı", "bilinç kaybı", "şiddetli kanama"]):
+            self._emergency_level = 3
+            self._triage_area = "Kırmızı"
+        elif any(k in text for k in ["yüksek ateş", "şiddetli ağrı", "kusma", "baş dönmesi"]):
             self._emergency_level = 2
+            self._triage_area = "Sarı"
+        else:
+            self._emergency_level = 1
+            self._triage_area = "Yeşil"
 
-        self._status = new_status
+        return self._triage_area
 
-    # emergency-specific behavior
+    def update_status(self, new_status: str):
+        """Acil hastanın durumunu günceller"""
+        super().update_status(new_status)
+
+
     def stabilize(self):
-        """Hasta stabilize edildiğinde çağrılır"""
+        """Hastayı stabil duruma geçirir"""
         self.update_status("stabil")
 
     def escalate(self):
-        """Hastanın durumu kötüleşirse acil seviyesi yükseltilir"""
+        """Hastanın acil seviyesini yükseltir"""
         if self._emergency_level > 1:
             self._emergency_level -= 1
-            self._status = "acil"
-
-    def __str__(self):
-        return self.describe()
+            self.update_status("acil")
