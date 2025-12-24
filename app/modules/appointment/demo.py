@@ -42,12 +42,18 @@ def create_appointment(service: AppointmentService):
         appointment_id = int(input("Randevu Numarası: "))
         now = datetime.now()
 
-        # Rutin randevu oluşturur
+        # -------------------- RUTİN RANDEVU --------------------
         if choice == "1":
             patient_id = int(input("Hasta ID: "))
             doctor_name = input("Doktor Adı: ")
             room = int(input("Oda No: "))
             duration = int(input("Süre (dk): "))
+
+            triage_area = input(
+                "Triyaj Alanı (Yeşil / Sarı / Kırmızı) [opsiyonel]: "
+            ).strip()
+
+            triage_area = triage_area if triage_area else None
 
             appointment = RoutineAppointment(
                 appointment_id=appointment_id,
@@ -55,10 +61,11 @@ def create_appointment(service: AppointmentService):
                 doctor_name=doctor_name,
                 date_time=now,
                 room_number=room,
-                duration_minutes=duration
+                duration_minutes=duration,
+                triage_area=triage_area
             )
 
-        # Acil (112) randevu oluşturur
+        # -------------------- ACİL (112) --------------------
         elif choice == "2":
             appointment = EmergencyAppointment(
                 appointment_id=appointment_id,
@@ -87,7 +94,7 @@ def create_appointment(service: AppointmentService):
                         f"Mevcut: {appointment.get_remaining_ambulances()}"
                     )
 
-        # Online randevu oluşturur
+        # -------------------- ONLINE --------------------
         elif choice == "3":
             patient_id = int(input("Hasta ID: "))
 
@@ -98,8 +105,7 @@ def create_appointment(service: AppointmentService):
             for i, name in enumerate(names, 1):
                 print(f"{i}. {name}")
 
-            pol_index = int(input("Seçim: ")) - 1
-            policlinic = names[pol_index]
+            policlinic = names[int(input("Seçim: ")) - 1]
 
             doctors = policlinics[policlinic]
             print("\nDoktorlar:")
