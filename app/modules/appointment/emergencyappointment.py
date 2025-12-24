@@ -1,76 +1,119 @@
-# app/modules/appointment/emergencyappointment.py
-
-from datetime import datetime, timedelta
+from datetime import datetime
 from .base import AppointmentBase
 
 
 class EmergencyAppointment(AppointmentBase):
 
-    EMERGENCY_BASE_FEE = 750
-    AMBULANCE_FEE = 400
+    # Sistemdeki toplam ambulans sayısı
+    TOTAL_AMBULANCES = 5
 
     def __init__(
         self,
         appointment_id: int,
         patient_id: int,
         doctor_name: str,
-        date_time: datetime,
-        emergency_level: int,
-        ambulance_used: bool = False,
-        triage_notes: str = ""
+        date_time: datetime
     ):
-        super().__init__(appointment_id, patient_id, doctor_name, date_time)
-        self.emergency_level = emergency_level      # 1–5 arası aciliyet seviyesi
-        self.ambulance_used = ambulance_used
-        self.triage_notes = triage_notes
-        self.priority = self._calculate_priority()
+        super().__init__(
+            appointment_id=appointment_id,
+            patient_id=patient_id,
+            doctor_name=doctor_name,
+            date_time=date_time
+        )
 
-    def calculate_fee(self) -> int:
-        fee = self.EMERGENCY_BASE_FEE
+        self.injured_count = 0
+        self.incident_address = ""
+        self.critical_level = 0
+        self.emergency_note = ""
+        self.requested_ambulances = 0
+        self.dispatched_ambulances = 0
+        self.remaining_ambulances = self.TOTAL_AMBULANCES
+        self.event_created_at = datetime.now()
 
-        if self.emergency_level >= 4:
-            fee += 300
+        # Yaralı + kritiklik bilgisi birlikte tutulur
+        self.casualty_info = {}
 
-        if self.ambulance_used:
-            fee += self.AMBULANCE_FEE
-
-        return fee
-
+    # Acil randevu detaylarını döndürür
     def get_details(self) -> str:
         return (
-            f"ACİL RANDEVU | Dr. {self.doctor_name} | "
-            f"Seviye: {self.emergency_level} | "
-            f"Ambulans: {'Evet' if self.ambulance_used else 'Hayır'}"
+            f"ACİL OLAY RAPORU\n"
+            f"Olay No            : {self._appointment_id}\n"
+            f"Oluşturulma        : {self.event_created_at.strftime('%d.%m.%Y %H:%M')}\n"
+            f"Olay Adresi        : {self.incident_address}\n"
+            f"Yaralı Sayısı      : {self.injured_count}\n"
+            f"Kritiklik Seviyesi : {self.critical_level}\n"
+            f"Acil Not           : {self.emergency_note if self.emergency_note else 'Yok'}\n"
+            f"Gönderilen Ambulans: {self.dispatched_ambulances}\n"
+            f"Kalan Ambulans     : {self.remaining_ambulances}\n"
+            f"Durum              : {self._status}"
         )
-    
-    # Normal aciliyet seviyesi
-    @classmethod
-    def default_emergency_level(cls) -> int:
-        return 3
 
-    # Aciliyet seviyesini arttır
-    def escalate_emergency(self):
-        if self.emergency_level < 5:
-            self.emergency_level += 1
-            self.priority = self._calculate_priority()
+    # Acil randevu için kısa özet bilgi
+    def get_summary(self) -> str:
+        return (
+            f"ACİL | Olay No {self._appointment_id} | "
+            f"Kritiklik: {self.critical_level} | "
+            f"Yaralı: {self.injured_count}"
+        )
 
-    # Aciliyet seviyesi geçerli mi
-    @staticmethod
-    def is_valid_emergency_level(level: int) -> bool:
-        return isinstance(level, int) and 1 <= level <= 5
+    # Yaralı sayısını belirler
+    def set_injured_count(self, count: int):
+        if count <= 0:
+            raise ValueError("Yaralı sayısı pozitif olmalıdır")
+        self.injured_count = count
+        self._update_casualty_info()
 
-    # Aciliyete göre öncelik hesapla (private)
-    def _calculate_priority(self) -> int:
-        return self.emergency_level * 10
-    
-    # Ambulans gerekli mi
-    @staticmethod
-    def is_ambulance_required(level: int) -> bool:
-        return level >= 4
-    
-    # Randevu erteleme
-    def delay_appointment(self, minutes: int):
-        if minutes > 0:
-            self.date_time += timedelta(minutes=minutes)
+    # Olay adresini belirler
+    def set_incident_address(self, address: str):
+        if not address.strip():
+            raise ValueError("Adres boş olamaz")
+        self.incident_address = address
 
+    # Genel kritiklik seviyesini belirler (1–5)
+    def set_critical_level(self, level: int):
+        if level < 1 or level > 5:
+            raise ValueError("Kritiklik seviyesi 1 ile 5 arasında olmalıdır")
+        self.critical_level = level
+        self._update_casualty_info()
 
+    # Opsiyonel acil durum notu ekler
+    def set_emergency_note(self, note: str):
+        if note:
+            self.emergency_note = note
+
+    # Olay için istenen ambulans sayısını alır
+    def request_ambulances(self, count: int):
+        if count <= 0:
+            raise ValueError("Ambulans sayısı pozitif olmalıdır")
+        self.requested_ambulances = count
+
+    # Mevcut ambulanslara göre sevk işlemi yapar
+    def dispatch_ambulances(self) -> bool:
+        if self.requested_ambulances <= self.remaining_ambulances:
+            self.dispatched_ambulances = self.requested_ambulances
+            self.remaining_ambulances -= self.dispatched_ambulances
+            return True
+        return False
+
+    # Mevcut ambulans bilgisini döndürür
+    def get_remaining_ambulances(self) -> int:
+        return self.remaining_ambulances
+
+    # Yaralı ve kritiklik bilgilerini birlikte günceller
+    def _update_casualty_info(self):
+        self.casualty_info = {
+            "injured_count": self.injured_count,
+            "critical_level": self.critical_level
+        }
+
+    # Acil durum kritik mi
+    def is_critical_event(self) -> bool:
+        return self.critical_level >= 4
+
+    # Olay için yeterli ambulans var mı
+    def has_sufficient_ambulance(self) -> bool:
+        return self.requested_ambulances <= self.remaining_ambulances
+
+    # Başka modüller için sade olay verisi
+    def get_event_data(self) -> dict:
+        return self.casualty_info

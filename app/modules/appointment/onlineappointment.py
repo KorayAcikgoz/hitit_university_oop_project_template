@@ -1,144 +1,126 @@
-# app/modules/appointment/onlineappointment.py
-
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from .base import AppointmentBase
 
 
 class OnlineAppointment(AppointmentBase):
 
-    PLATFORM_FEES = {
-        "zoom": 50,
-        "teams": 40,
-        "google_meet": 30
+    # Poliklinikler ve doktorlar
+    POLICLINICS = {
+        "Dahiliye": ["Dr. Ahmet", "Dr. Ayşe"],
+        "Kardiyoloji": ["Dr. Mehmet", "Dr. Elif"],
+        "Dermatoloji": ["Dr. Can", "Dr. Zeynep"]
     }
 
-    BASE_FEE = 200
+    # Online randevular 1 saat sürer
+    APPOINTMENT_DURATION = 60
 
     def __init__(
         self,
         appointment_id: int,
         patient_id: int,
+        policlinic: str,
         doctor_name: str,
-        date_time: datetime,
-        meeting_link: str,
-        platform: str,
-        estimated_duration: int = 20,
-        recording_enabled: bool = False
+        date_time: datetime
     ):
-        super().__init__(appointment_id, patient_id, doctor_name, date_time)
-
-        self.meeting_link = meeting_link
-        self.platform = platform.lower()
-        self.estimated_duration = estimated_duration
-        self.recording_enabled = recording_enabled
-
-        self.connection_status = "not_started"
-        self.session_started_at = None
-        self.session_ended_at = None
-
-    def calculate_fee(self) -> int:
-        fee = self.BASE_FEE
-
-        platform_fee = self.PLATFORM_FEES.get(self.platform, 20)
-        fee += platform_fee
-
-        if self.recording_enabled:
-            fee += 50
-
-        if self.estimated_duration > 30:
-            fee += 100
-
-        return fee
-
-    def get_details(self) -> str:
-        return (
-            f"Online Randevu | Dr. {self.doctor_name} | "
-            f"Platform: {self.platform} | "
-            f"Süre: {self.estimated_duration} dk | "
-            f"Kayıt: {'Açık' if self.recording_enabled else 'Kapalı'}"
+        super().__init__(
+            appointment_id=appointment_id,
+            patient_id=patient_id,
+            doctor_name=doctor_name,
+            date_time=date_time
         )
 
-    # Online görüşmeyi başlatır
-    def start_session(self):
+        self.policlinic = policlinic
+        self.end_time = self._date_time + timedelta(minutes=self.APPOINTMENT_DURATION)
 
-        if self.connection_status != "not_started":
-            raise RuntimeError("Oturum zaten başlatılmış veya tamamlanmış.")
+    # Randevuya ait detaylı bilgileri döndürür
+    def get_details(self) -> str:
+        return (
+            f"ONLINE RANDEVU\n"
+            f"Randevu ID : {self._appointment_id}\n"
+            f"Hasta ID  : {self._patient_id}\n"
+            f"Poliklinik: {self.policlinic}\n"
+            f"Doktor    : {self._doctor_name}\n"
+            f"Tarih     : {self._date_time.strftime('%d.%m.%Y')}\n"
+            f"Saat      : {self._date_time.strftime('%H:%M')} - "
+            f"{self.end_time.strftime('%H:%M')}\n"
+            f"Durum     : {self._status}"
+        )
 
-        self.connection_status = "in_progress"
-        self.session_started_at = datetime.now()
+    # Randevuya ait kısa özet bilgi
+    def get_summary(self) -> str:
+        return (
+            f"Online | {self.policlinic} | "
+            f"Dr. {self._doctor_name} | "
+            f"{self._date_time.strftime('%d.%m.%Y %H:%M')}"
+        )
 
-    # Online görüşmeyi sonlandırır
-    def end_session(self):
-
-        if self.connection_status != "in_progress":
-            raise RuntimeError("Başlatılmamış bir oturum sonlandırılamaz.")
-
-        self.connection_status = "completed"
-        self.session_ended_at = datetime.now()
-
-    # görüşme süresini dakika cinsinden göster
-    def actual_duration(self) -> int:
-
-        if not self.session_started_at or not self.session_ended_at:
-            return 0
-
-        delta = self.session_ended_at - self.session_started_at
-        return int(delta.total_seconds() // 60)
-
-    # Online randevuyu ileri bir tarihe erteler
-    def reschedule_online(self, new_datetime: datetime):
-
-        if not self.validate_datetime(new_datetime):
-            raise ValueError("Geçersiz tarih formatı.")
-
-        self.date_time = new_datetime
-        self.connection_status = "not_started"
-        self.session_started_at = None
-        self.session_ended_at = None
-
-    # Platform destekleniyor mu?
-    def _is_platform_supported(self) -> bool:
-
-        return self.platform in self.PLATFORM_FEES
-
-    # Desteklenen online platformları göster
+    # Mevcut poliklinikleri döndürür
     @classmethod
-    def supported_platforms(cls):
+    def get_policlinics(cls):
+        return list(cls.POLICLINICS.keys())
 
-        return list(cls.PLATFORM_FEES.keys())
-
-    # Online randevular için varsayılan süre
+    # Seçilen polikliniğe ait doktorları döndürür
     @classmethod
-    def default_duration(cls) -> int:
+    def get_doctors_by_policlinic(cls, policlinic: str):
+        if policlinic not in cls.POLICLINICS:
+            raise ValueError("Geçersiz poliklinik")
+        return cls.POLICLINICS[policlinic]
 
-        return 20
-
-    # Meeting link geçerli mi kontrolü
+    # Bugünden itibaren 7 günlük uygun tarihleri döndürür
     @staticmethod
-    def is_valid_meeting_link(link: str) -> bool:
+    def get_available_dates():
+        today = datetime.now().date()
+        return [today + timedelta(days=i) for i in range(1, 8)]
 
-        return isinstance(link, str) and link.startswith("http")
-
-    # Süre geçerli mi?
+    # 10:00–17:00 arası 1 saatlik zaman dilimleri
     @staticmethod
-    def is_valid_duration(minutes: int) -> bool:
+    def get_daily_time_slots():
+        return [time(hour=h, minute=0) for h in range(10, 17)]
 
-        return isinstance(minutes, int) and 5 <= minutes <= 120
-
-    # Kayıt desteği olan platformları kontrol eder
+    # Tarih ve saatten datetime oluşturur
     @staticmethod
-    def can_be_recorded(platform: str) -> bool:
+    def build_datetime(selected_date, selected_time):
+        return datetime.combine(selected_date, selected_time)
 
-        return platform.lower() in ["zoom", "teams"]
+    # Doktor için saat çakışması kontrolü
+    @staticmethod
+    def has_time_conflict(
+        doctor_name: str,
+        date_time: datetime,
+        existing_appointments: list
+    ) -> bool:
+        for appt in existing_appointments:
+            if (
+                isinstance(appt, OnlineAppointment)
+                and appt._doctor_name == doctor_name
+                and appt._date_time == date_time
+            ):
+                return True
+        return False
 
-    # Kayıt özelliğini aktif eder
-    def enable_recording(self):
+    # Saat aralığı kontrolü
+    @staticmethod
+    def is_valid_time_slot(date_time: datetime) -> bool:
+        return time(10, 0) <= date_time.time() <= time(16, 0)
 
-        if not self.can_be_recorded(self.platform):
-            raise ValueError("Bu platform kayıt desteklemiyor.")
-        self.recording_enabled = True
+    # Tarih aralığı kontrolü (bugün + 7 gün)
+    @staticmethod
+    def is_valid_date(date_time: datetime) -> bool:
+        today = datetime.now().date()
+        return today < date_time.date() <= today + timedelta(days=7)
 
-    # Kayıt özelliğini kapatır
-    def disable_recording(self):
-
-        self.recording_enabled = False
+    # Hastanın aynı gün başka online randevusu var mı
+    @staticmethod
+    def has_patient_daily_conflict(
+        patient_id: int,
+        date_time: datetime,
+        existing_appointments: list
+    ) -> bool:
+        for appt in existing_appointments:
+            if (
+                isinstance(appt, OnlineAppointment)
+                and appt._patient_id == patient_id
+                and appt._date_time.date() == date_time.date()
+            ):
+                return True
+        return False
